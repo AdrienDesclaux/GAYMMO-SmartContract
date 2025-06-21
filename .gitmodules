@@ -1,3 +1,6 @@
 [submodule "gaymmo-sm/lib/forge-std"]
 	path = gaymmo-sm/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "gaymmo-sm/lib/openzeppelin-contracts"]
+	path = gaymmo-sm/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
