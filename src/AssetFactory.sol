@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { Asset } from "./Asset.sol";
-import { AssetToken } from "./AssetToken.sol";
-import { AssetManager } from "./AssetManager.sol";
+import {Asset} from "./Asset.sol";
+import {AssetToken} from "./AssetToken.sol";
+import {AssetManager} from "./AssetManager.sol";
 
 contract AssetFactory {
     Asset[] public _assets;
     mapping(bytes32 => bool) private _existingAsset;
     mapping(address => bool) private _isAssets;
     mapping(address => Assets) private _assetDetails;
+
     struct Assets {
         address assetAddress;
         address assetTokenAddress;
@@ -18,6 +19,7 @@ contract AssetFactory {
     }
 
     event AssetCreated(address indexed assetAddress, string name, string symbol);
+
     error EmptyName();
     error EmptySymbol();
     error AssetAlreadyExists();
@@ -28,10 +30,10 @@ contract AssetFactory {
         if (bytes(name).length == 0) revert EmptyName();
         if (bytes(symbol).length == 0) revert EmptySymbol();
         if (_existingAsset[nameHash]) revert AssetAlreadyExists();
-        
+
         Asset asset = new Asset(name, symbol, _owner);
         AssetToken assetToken = new AssetToken(name, symbol, 1000000 * 10 ** 18, _owner);
-        AssetManager assetManager = new AssetManager(address(asset), address(assetToken),1, _owner);
+        AssetManager assetManager = new AssetManager(address(asset), address(assetToken), 1, _owner);
         _assetDetails[address(asset)] = Assets({
             assetAddress: address(asset),
             assetTokenAddress: address(assetToken),

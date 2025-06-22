@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import { Test, console } from "forge-std/Test.sol";
-import { AssetFactory } from "../src/AssetFactory.sol";
-import { AssetToken } from "../src/AssetToken.sol";
-import { AssetManager } from "../src/AssetManager.sol";
-import { Asset } from "../src/Asset.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import {Test, console} from "forge-std/Test.sol";
+import {AssetFactory} from "../src/AssetFactory.sol";
+import {AssetToken} from "../src/AssetToken.sol";
+import {AssetManager} from "../src/AssetManager.sol";
+import {Asset} from "../src/Asset.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract AssetFactoryTest is Test {
     AssetFactory private assetFactory;
@@ -21,12 +21,7 @@ contract AssetFactoryTest is Test {
         assetFactory = new AssetFactory();
         assetToken = new AssetToken("Test Token", "TTK", 1000, owner);
         asset = new Asset("Test Asset", "TAST", owner);
-        assetManager = new AssetManager(
-            address(asset),
-            address(assetToken),
-            1,
-            owner
-        );
+        assetManager = new AssetManager(address(asset), address(assetToken), 1, owner);
     }
 
     function testCreateAsset() public {
@@ -34,7 +29,7 @@ contract AssetFactoryTest is Test {
         string memory symbol = "TAST";
 
         vm.startPrank(owner);
-            Asset createdAsset = assetFactory.createAsset(name, symbol, owner);
+        Asset createdAsset = assetFactory.createAsset(name, symbol, owner);
         vm.stopPrank();
         assertEq(createdAsset.name(), name);
         assertEq(createdAsset.symbol(), symbol);
