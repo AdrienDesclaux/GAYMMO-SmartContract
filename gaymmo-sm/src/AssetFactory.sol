@@ -31,7 +31,7 @@ contract AssetFactory {
         
         Asset asset = new Asset(name, symbol, _owner);
         AssetToken assetToken = new AssetToken(name, symbol, 1000000 * 10 ** 18, _owner);
-        AssetManager assetManager = new AssetManager(address(asset), address(assetToken), _owner);
+        AssetManager assetManager = new AssetManager(address(asset), address(assetToken),1, _owner);
         _assetDetails[address(asset)] = Assets({
             assetAddress: address(asset),
             assetTokenAddress: address(assetToken),

@@ -24,6 +24,7 @@ contract AssetFactoryTest is Test {
         assetManager = new AssetManager(
             address(asset),
             address(assetToken),
+            1,
             owner
         );
     }
