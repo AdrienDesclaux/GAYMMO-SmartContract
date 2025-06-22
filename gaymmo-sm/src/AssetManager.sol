@@ -7,7 +7,6 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract AssetManager is Ownable {
 
-    uint256 pricePerToken;
     Asset private _asset;
     AssetToken private _assetToken;
 
@@ -22,13 +21,12 @@ contract AssetManager is Ownable {
     error InvalidPrice();
     error LimitExceeded();
 
-    constructor(address assetAddress, address assetTokenAddress, uint256 pricePerToken_, address owner_) Ownable(msg.sender) {
+    constructor(address assetAddress, address assetTokenAddress, address owner_) Ownable(msg.sender) {
         if (assetAddress == address(0)) revert InvalidAssetAddress();
         if (assetTokenAddress == address(0)) revert InvalidAssetTokenAddress();
 
         _asset = Asset(assetAddress);
         _assetToken = AssetToken(assetTokenAddress);
-        pricePerToken = pricePerToken_;
         _transferOwnership(owner_);
     }
 }

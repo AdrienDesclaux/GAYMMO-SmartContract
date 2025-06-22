@@ -31,7 +31,7 @@ contract AssetFactory {
         
         Asset asset = new Asset(name, symbol, _owner);
         AssetToken assetToken = new AssetToken(name, symbol, 1000000 * 10 ** 18, _owner);
-        AssetManager assetManager = new AssetManager(address(asset), address(assetToken), 1, _owner);
+        AssetManager assetManager = new AssetManager(address(asset), address(assetToken), _owner);
         _assetDetails[address(asset)] = Assets({
             assetAddress: address(asset),
             assetTokenAddress: address(assetToken),
@@ -43,5 +43,22 @@ contract AssetFactory {
         _assets.push(asset);
         emit AssetCreated(address(asset), name, symbol);
         return asset;
+    }
+
+    function getAssetDetails(address assetAddress) external view returns (Assets memory) {
+        if (!_isAssets[assetAddress]) revert AssetNotFound();
+        return _assetDetails[assetAddress];
+    }
+
+    function getAssets() external view returns (Asset[] memory) {
+        return _assets;
+    }
+
+    function isAsset(address assetAddress) external view returns (bool) {
+        return _isAssets[assetAddress];
+    }
+
+    function getAssetCount() external view returns (uint256) {
+        return _assets.length;
     }
 }
