@@ -4,3 +4,6 @@
 [submodule "gaymmo-sm/lib/openzeppelin-contracts"]
 	path = gaymmo-sm/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "gaymmo-sm/lib/chainlink-brownie-contracts"]
+	path = gaymmo-sm/lib/chainlink-brownie-contracts
+	url = https://github.com/smartcontractkit/chainlink-brownie-contracts
