@@ -1,3 +1,4 @@
+/** @author Yoyo77400 */
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
@@ -20,6 +21,8 @@ contract AssetManager is Ownable {
 
     error InvalidAssetAddress();
     error InvalidAssetTokenAddress();
+    error InvalidFeedTokenAddress();
+    error FeedTokenNotFound();
     error AssetNotFound();
     error InvalidAmount();
     error InvalidPrice();
@@ -35,4 +38,34 @@ contract AssetManager is Ownable {
         _assetToken = AssetToken(assetTokenAddress);
         _transferOwnership(owner_);
     }
+
+    function updateAssetToken(address assetTokenAddress) external onlyOwner {
+        if (assetTokenAddress == address(0)) revert InvalidAssetTokenAddress();
+        _assetToken = AssetToken(assetTokenAddress);
+        emit AssetTokenUpdated(assetTokenAddress);
+    }
+
+
+    /** 
+        * @notice Get the last price on a specify crypto for payement since a known price in FIAT, set before.
+        * @param tokenAddress The cryptocurrency token address who want to have on payment.
+        * @return price The last price of the token in USD, multiplied by 10^10 for precision with 18 decimals (only 8 returned by chainlink).
+    */
+    function getLastPrice(address tokenAddress) external view returns (int256) {
+        if (address(priceFeeds[tokenAddress]) == address(0)) revert FeedTokenNotFound();
+        (, int256 price, , , ) = priceFeeds[tokenAddress].latestRoundData();
+        return price * 10 ** 10;
+    }
+
+    /** 
+        * @notice Sets the price feed of this asset for specific cryptocyrency.
+        * @param tokenAddress The cryptocurrency token address who want to have on payment.
+        * @param priceFeedAddress the chainlink address of contract for Token/USD. If we want to use a pricePerToken in USD.
+    */
+    function setPriceFeed(address tokenAddress, address priceFeedAddress) external onlyOwner {
+        if (tokenAddress == address(0)) revert InvalidAssetTokenAddress();
+        if (priceFeedAddress == address(0)) revert InvalidFeedTokenAddress();
+        priceFeeds[tokenAddress] = AggregatorV3Interface(priceFeedAddress);
+    }
+
 }
