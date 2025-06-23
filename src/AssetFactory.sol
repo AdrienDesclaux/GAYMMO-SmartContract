@@ -4,13 +4,12 @@ pragma solidity ^0.8.28;
 import {Asset} from "./Asset.sol";
 import {AssetToken} from "./AssetToken.sol";
 import {AssetManager} from "./AssetManager.sol";
-import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
 contract AssetFactory {
-
     address public immutable assetImpl;
     address public immutable assetTokenImpl;
-    address public immutable assetManagerImpl; 
+    address public immutable assetManagerImpl;
 
     address[] public _assets;
     mapping(bytes32 => bool) private _existingAsset;
@@ -50,7 +49,7 @@ contract AssetFactory {
         Asset(assetClone).initialize(name, symbol, _owner);
         AssetToken(assetTokenClone).initialize(name, symbol, 1000000 * 10 ** 18, _owner);
         AssetManager(assetManagerClone).initialize(assetClone, assetTokenClone, 1, _owner);
-        
+
         _assetDetails[assetClone] = Assets({
             assetAddress: assetClone,
             assetTokenAddress: assetTokenClone,

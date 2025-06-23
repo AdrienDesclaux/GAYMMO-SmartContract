@@ -31,8 +31,10 @@ contract AssetManager is Initializable, OwnableUpgradeable {
     error LimitExceeded();
     error AlreadyInitialized();
 
-
-    function initialize(address assetAddress, address assetTokenAddress, uint256 _usdPricePerToken, address owner_) external initializer {
+    function initialize(address assetAddress, address assetTokenAddress, uint256 _usdPricePerToken, address owner_)
+        external
+        initializer
+    {
         if (assetAddress == address(0)) revert InvalidAssetAddress();
         if (assetTokenAddress == address(0)) revert InvalidAssetTokenAddress();
         if (_usdPricePerToken == 0) revert InvalidPrice();
