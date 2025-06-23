@@ -9,9 +9,6 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 contract Asset is ERC721URIStorageUpgradeable, OwnableUpgradeable {
     uint256 public tokenCounter;
     bool public limitReached;
-    bool private _initialized;
-    string private _name;
-    string private _symbol;
 
     error LimitReached();
     error AlreadyInitialized();
@@ -21,6 +18,8 @@ contract Asset is ERC721URIStorageUpgradeable, OwnableUpgradeable {
         if (bytes(name_).length == 0 || bytes(symbol_).length == 0) revert InvalidNameOrSymbol();
         __ERC721_init(name_, symbol_);
         __Ownable_init(owner_);
+        tokenCounter = 0;
+        limitReached = false;
     }
 
     function mintAsset(address to, string memory tokenURI) external onlyOwner returns (uint256) {

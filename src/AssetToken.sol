@@ -6,9 +6,6 @@ import {OwnableUpgradeable} from "@openzeppelin-upgradeable/contracts/access/Own
 
 contract AssetToken is OwnableUpgradeable, ERC20Upgradeable {
     uint256 public limitSupply;
-    string private _name;
-    string private _symbol;
-    bool private _initialized;
 
     error AlreadyInitialized();
     error InvalidNameOrSymbol();
