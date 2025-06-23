@@ -19,9 +19,11 @@ contract AssetFactoryTest is Test {
 
     function setUp() public {
         // Déploiement des implémentations
-        assetTokenImpl = new AssetToken();
-        assetImpl = new Asset();
-        assetManagerImpl = new AssetManager();
+        vm.startPrank(owner);
+            assetTokenImpl = new AssetToken();
+            assetImpl = new Asset();
+            assetManagerImpl = new AssetManager();
+        vm.stopPrank();
 
         // Création de la factory avec les implémentations
         assetFactory = new AssetFactory(
@@ -30,7 +32,7 @@ contract AssetFactoryTest is Test {
             address(assetManagerImpl)
         );
 
-        
+
     }
 
     function testCreateAsset() public {

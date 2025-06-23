@@ -6,10 +6,11 @@ pragma solidity ^0.8.28;
 
 import {Asset} from "./Asset.sol";
 import {AssetToken} from "./AssetToken.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {OwnableUpgradeable} from "@openzeppelin-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import {Initializable} from "@openzeppelin-upgradeable/contracts/proxy/utils/Initializable.sol";
 import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
-contract AssetManager is Ownable {
+contract AssetManager is Initializable, OwnableUpgradeable {
     mapping(address => AggregatorV3Interface) public priceFeeds;
     Asset private _asset;
     AssetToken private _assetToken;
@@ -30,20 +31,8 @@ contract AssetManager is Ownable {
     error LimitExceeded();
     error AlreadyInitialized();
 
-    modifier initializer() {
-        if (_initialized) revert AlreadyInitialized();
-        _;
-        _initialized = true;
-    }
 
-    constructor() Ownable(msg.sender) {
-        
-    }
-
-    function initialize(address assetAddress, address assetTokenAddress, uint256 _usdPricePerToken, address owner_)
-        external
-        initializer
-    {
+    function initialize(address assetAddress, address assetTokenAddress, uint256 _usdPricePerToken, address owner_) external initializer {
         if (assetAddress == address(0)) revert InvalidAssetAddress();
         if (assetTokenAddress == address(0)) revert InvalidAssetTokenAddress();
         if (_usdPricePerToken == 0) revert InvalidPrice();
@@ -51,7 +40,7 @@ contract AssetManager is Ownable {
         usdPricePerToken = _usdPricePerToken;
         _asset = Asset(assetAddress);
         _assetToken = AssetToken(assetTokenAddress);
-        _transferOwnership(owner_);
+        __Ownable_init(owner_);
     }
 
     function updateAssetToken(address assetTokenAddress) external onlyOwner {
