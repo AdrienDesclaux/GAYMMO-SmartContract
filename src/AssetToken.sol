@@ -6,14 +6,32 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract AssetToken is ERC20, Ownable {
     uint256 public limitSupply;
+    bool private _initialized;
+    string private _name;
+    string private _symbol;
 
-    constructor(string memory name_, string memory symbol_, uint256 initialSupply, address owner_)
-        ERC20(name_, symbol_)
-        Ownable(msg.sender)
-    {
-        _mint(owner_, initialSupply);
+    error AlreadyInitialized();
+    error InvalidNameOrSymbol();
+
+
+    modifier initializer() {
+        if (_initialized) revert AlreadyInitialized();
+        _;
+        _initialized = true;
+    }
+
+    constructor() ERC20("","") Ownable(msg.sender) {
+       
+    }
+
+    function initialize(string memory name_, string memory symbol_, uint256 initialSupply, address owner_) external {
+        if (_initialized) revert AlreadyInitialized();
+        if (bytes(name_).length == 0 || bytes(symbol_).length == 0) revert InvalidNameOrSymbol();
+        _name = name_;
+        _symbol = symbol_;
         limitSupply = initialSupply * 10;
-        _transferOwnership(owner_);
+        transferOwnership(owner_);
+        _mint(owner_, initialSupply);
     }
 
     function mint(address to, uint256 amount) external onlyOwner {

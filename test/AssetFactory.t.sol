@@ -10,18 +10,27 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract AssetFactoryTest is Test {
     AssetFactory private assetFactory;
-    AssetToken private assetToken;
-    AssetManager private assetManager;
-    Asset private asset;
+    AssetToken private assetTokenImpl;
+    AssetManager private assetManagerImpl;
+    Asset private assetImpl;
 
     address private owner = address(0x123);
     address private user = address(0x456);
 
     function setUp() public {
-        assetFactory = new AssetFactory();
-        assetToken = new AssetToken("Test Token", "TTK", 1000, owner);
-        asset = new Asset("Test Asset", "TAST", owner);
-        assetManager = new AssetManager(address(asset), address(assetToken), 1, owner);
+        // Déploiement des implémentations
+        assetTokenImpl = new AssetToken();
+        assetImpl = new Asset();
+        assetManagerImpl = new AssetManager();
+
+        // Création de la factory avec les implémentations
+        assetFactory = new AssetFactory(
+            address(assetImpl),
+            address(assetTokenImpl),
+            address(assetManagerImpl)
+        );
+
+        
     }
 
     function testCreateAsset() public {
@@ -29,10 +38,15 @@ contract AssetFactoryTest is Test {
         string memory symbol = "TAST";
 
         vm.startPrank(owner);
-        Asset createdAsset = assetFactory.createAsset(name, symbol, owner);
+        address createdAssetAddress = assetFactory.createAsset(name, symbol, owner);
         vm.stopPrank();
+
+        // Cast de l'adresse clonée vers le type Asset
+        Asset createdAsset = Asset(createdAssetAddress);
+
+        // Vérifications
         assertEq(createdAsset.name(), name);
         assertEq(createdAsset.symbol(), symbol);
-        assertEq(assetFactory.getAssets().length, 1);
+        assertEq(assetFactory.getAssetCount(), 1);
     }
 }

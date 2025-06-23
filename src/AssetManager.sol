@@ -14,6 +14,7 @@ contract AssetManager is Ownable {
     Asset private _asset;
     AssetToken private _assetToken;
     uint256 public usdPricePerToken;
+    bool private _initialized;
 
     event AssetTokenUpdated(address indexed assetTokenAddress);
     event AssetOwnershipTransferred(address indexed newOwner);
@@ -27,9 +28,21 @@ contract AssetManager is Ownable {
     error InvalidAmount();
     error InvalidPrice();
     error LimitExceeded();
+    error AlreadyInitialized();
 
-    constructor(address assetAddress, address assetTokenAddress, uint256 _usdPricePerToken, address owner_)
-        Ownable(msg.sender)
+    modifier initializer() {
+        if (_initialized) revert AlreadyInitialized();
+        _;
+        _initialized = true;
+    }
+
+    constructor() Ownable(msg.sender) {
+        
+    }
+
+    function initialize(address assetAddress, address assetTokenAddress, uint256 _usdPricePerToken, address owner_)
+        external
+        initializer
     {
         if (assetAddress == address(0)) revert InvalidAssetAddress();
         if (assetTokenAddress == address(0)) revert InvalidAssetTokenAddress();
