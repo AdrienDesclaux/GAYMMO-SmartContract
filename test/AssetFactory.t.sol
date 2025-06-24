@@ -18,7 +18,7 @@ contract AssetFactoryTest is Test {
     address private user = address(0x456);
 
     function setUp() public {
-        // Déploiement des implémentations
+        // Déploiement des implémentations (templates)
         vm.startPrank(owner);
         assetTokenImpl = new AssetToken();
         assetImpl = new Asset();

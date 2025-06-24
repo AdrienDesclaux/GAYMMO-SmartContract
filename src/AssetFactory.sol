@@ -48,7 +48,7 @@ contract AssetFactory {
 
         Asset(assetClone).initialize(name, symbol, _owner);
         AssetToken(assetTokenClone).initialize(name, symbol, 1000000 * 10 ** 18, _owner);
-        AssetManager(assetManagerClone).initialize(assetClone, assetTokenClone, 1, _owner);
+        AssetManager(assetManagerClone).initialize(assetClone, assetTokenClone, 1 * 10 ** 18, _owner);
 
         _assetDetails[assetClone] = Assets({
             assetAddress: assetClone,
@@ -78,5 +78,15 @@ contract AssetFactory {
 
     function getAssetCount() external view returns (uint256) {
         return _assets.length;
+    }
+
+    function getAssetTokenAddress(address assetAddress) external view returns (address) {
+        if (!_isAssets[assetAddress]) revert AssetNotFound();
+        return _assetDetails[assetAddress].assetTokenAddress;
+    }
+
+    function getAssetManagerAddress(address assetAddress) external view returns (address) {
+        if (!_isAssets[assetAddress]) revert AssetNotFound();
+        return _assetDetails[assetAddress].assetManagerAddress;
     }
 }

@@ -20,6 +20,7 @@ contract AssetManager is Initializable, OwnableUpgradeable {
     event AssetTokenUpdated(address indexed assetTokenAddress);
     event AssetOwnershipTransferred(address indexed newOwner);
     event Bought(address indexed buyer, uint256 amount, uint256 totalPrice);
+    event PriceFeedSet(address indexed tokenAddress, address indexed priceFeedAddress);
 
     error InvalidAssetAddress();
     error InvalidAssetTokenAddress();
@@ -54,12 +55,15 @@ contract AssetManager is Initializable, OwnableUpgradeable {
     /**
      * @notice Get the last price on a specify crypto for payement since a known price in FIAT, set before.
      * @param tokenAddress The cryptocurrency token address who want to have on payment.
-     * @return price The last price of the token in USD, multiplied by 10^10 for precision with 18 decimals (only 8 returned by chainlink).
+     * @return price The last price of the token on a cryptocurrency, based on USD estimated price !.
      */
-    function getLastPrice(address tokenAddress) external view returns (int256) {
+    function getLastPrice(address tokenAddress) external view returns (uint256) {
         if (address(priceFeeds[tokenAddress]) == address(0)) revert FeedTokenNotFound();
         (, int256 price,,,) = priceFeeds[tokenAddress].latestRoundData();
-        return price * 10 ** 10;
+        if (price <= 0) revert InvalidPrice();
+        uint256 feedPrice = uint256(price) * 10 ** 10;
+        uint256 assetTokenPrice = (usdPricePerToken * 10 ** 18) / feedPrice;
+        return assetTokenPrice;
     }
 
     /**
@@ -71,5 +75,6 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         if (tokenAddress == address(0)) revert InvalidAssetTokenAddress();
         if (priceFeedAddress == address(0)) revert InvalidFeedTokenAddress();
         priceFeeds[tokenAddress] = AggregatorV3Interface(priceFeedAddress);
+        emit PriceFeedSet(tokenAddress, priceFeedAddress);
     }
 }
