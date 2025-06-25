@@ -54,5 +54,27 @@ contract AssetManagerTest is Test {
         assertEq(assetManager.getLastPriceToken(eth), 5 * 10 ** 14);
     }
 
-    
+    function testbuyAssetTokenWithETH() public {
+        address assetManagerAddress = assetFactory.getAssetDetails(createdAssetAddress1).assetManagerAddress;
+        AssetManager assetManager = AssetManager(assetManagerAddress);
+        address assetTokenAddress = assetFactory.getAssetDetails(createdAssetAddress1).assetTokenAddress;
+        AssetToken assetToken = AssetToken(assetTokenAddress);
+
+        vm.startPrank(owner);
+        assetManager.setPriceFeed(eth, address(mockEthUsdFeed));
+        assetManager.setAvailableSupply(15000 * 10 ** 18);
+        vm.stopPrank();
+
+        uint256 amountToBuy = 100 * 10 ** 18;
+        uint256 pricePerToken = assetManager.getLastPriceToken(eth); 
+        uint256 totalPrice = amountToBuy * pricePerToken / 10 ** 18;
+
+        vm.deal(user, totalPrice);
+
+        vm.startPrank(user);
+        assetManager.buyAssetTokenWithETH{value: totalPrice}(amountToBuy);
+        vm.stopPrank();
+
+        assertEq(assetToken.balanceOf(user), amountToBuy);
+    }
 }

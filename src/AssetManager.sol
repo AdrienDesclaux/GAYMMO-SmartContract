@@ -158,8 +158,6 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         if (pricePerToken == 0) revert InvalidPrice();
         uint256 totalPrice = pricePerToken * amount;
 
-        if (msg.value < totalPrice) revert InvalidAmount();
-
         if (treasuryAddress != address(0) && treasuryAddress != address(this)) {
             payable(treasuryAddress).transfer(totalPrice);
         }
