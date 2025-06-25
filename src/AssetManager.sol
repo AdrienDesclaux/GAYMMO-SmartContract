@@ -9,13 +9,17 @@ import {AssetToken} from "./AssetToken.sol";
 import {OwnableUpgradeable} from "@openzeppelin-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import {Initializable} from "@openzeppelin-upgradeable/contracts/proxy/utils/Initializable.sol";
 import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import { AssetManagerMath } from "../utils/assetManagerMath.sol";
 
 contract AssetManager is Initializable, OwnableUpgradeable {
+    using AssetManagerMath for uint256;
     mapping(address => AggregatorV3Interface) public priceFeeds;
     Asset private _asset;
     AssetToken private _assetToken;
     uint256 public usdPricePerToken;
     bool private _initialized;
+    uint256 private rentUsdPerMonth;
+
 
     event AssetTokenUpdated(address indexed assetTokenAddress);
     event AssetOwnershipTransferred(address indexed newOwner);
@@ -76,5 +80,33 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         if (priceFeedAddress == address(0)) revert InvalidFeedTokenAddress();
         priceFeeds[tokenAddress] = AggregatorV3Interface(priceFeedAddress);
         emit PriceFeedSet(tokenAddress, priceFeedAddress);
+    }
+
+    function setRentUsdPerMonth(uint256 _rentUsdPerMonth) external onlyOwner {
+        if (_rentUsdPerMonth == 0) revert InvalidPrice();
+        rentUsdPerMonth = _rentUsdPerMonth * 10 ** 18;
+    }
+
+    function getRentUsdPerMonth() external view returns (uint256) {
+        return rentUsdPerMonth;
+    }
+
+    function getTotalSupply() external view returns (uint256) {
+        return _assetToken.totalSupply();
+    }
+
+    function getUsdPricePerToken() external view returns (uint256) {
+        return usdPricePerToken;
+    }
+
+    function calculateRentPrice(uint256 months) external view returns (uint256) {
+        uint256 rent = this.getRentUsdPerMonth(); // Ensure the rentUsdPerMonth is set before calculation
+        return AssetManagerMath.calculateRentPrice(rent, months);
+    }
+
+    function calculateAssetValue(uint256 quantity, uint8 priceFeedDecimals) external view returns (uint256) {
+        if (quantity == 0) revert InvalidAmount();
+        uint256 pricePerToken = this.getUsdPricePerToken();
+        return AssetManagerMath.calculateAssetValue(pricePerToken, quantity, priceFeedDecimals);
     }
 }
