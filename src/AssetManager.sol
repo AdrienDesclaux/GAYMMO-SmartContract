@@ -10,15 +10,20 @@ import {OwnableUpgradeable} from "@openzeppelin-upgradeable/contracts/access/Own
 import {Initializable} from "@openzeppelin-upgradeable/contracts/proxy/utils/Initializable.sol";
 import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import { AssetManagerMath } from "../utils/assetManagerMath.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract AssetManager is Initializable, OwnableUpgradeable {
     using AssetManagerMath for uint256;
+    using SafeERC20 for IERC20;
     mapping(address => AggregatorV3Interface) public priceFeeds;
+    address public treasuryAddress;
     Asset private _asset;
     AssetToken private _assetToken;
     uint256 public usdPricePerToken;
     bool private _initialized;
     uint256 private rentUsdPerMonth;
+    uint256 private availableSupply;
 
 
     event AssetTokenUpdated(address indexed assetTokenAddress);
@@ -47,6 +52,7 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         usdPricePerToken = _usdPricePerToken * 10 ** 18;
         _asset = Asset(assetAddress);
         _assetToken = AssetToken(assetTokenAddress);
+        availableSupply = _assetToken.totalSupply(); // Assuming limitSupply is set in AssetToken
         __Ownable_init(owner_);
     }
 
@@ -61,7 +67,7 @@ contract AssetManager is Initializable, OwnableUpgradeable {
      * @param tokenAddress The cryptocurrency token address who want to have on payment.
      * @return price The last price of the token on a cryptocurrency, based on USD estimated price !.
      */
-    function getLastPrice(address tokenAddress) external view returns (uint256) {
+    function getLastPriceToken(address tokenAddress) external view returns (uint256) {
         if (address(priceFeeds[tokenAddress]) == address(0)) revert FeedTokenNotFound();
         (, int256 price,,,) = priceFeeds[tokenAddress].latestRoundData();
         if (price <= 0) revert InvalidPrice();
@@ -95,6 +101,15 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         return _assetToken.totalSupply();
     }
 
+    function getAvailableSupply() external view returns (uint256) {
+        return availableSupply;
+    }
+
+    function setAvailableSupply(uint256 _availableSupply) external onlyOwner {
+        if (_availableSupply == 0) revert InvalidAmount();
+        availableSupply = _availableSupply;
+    }
+
     function getUsdPricePerToken() external view returns (uint256) {
         return usdPricePerToken;
     }
@@ -104,9 +119,54 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         return AssetManagerMath.calculateRentPrice(rent, months);
     }
 
-    function calculateAssetValue(uint256 quantity, uint8 priceFeedDecimals) external view returns (uint256) {
+    function calculateAssetValue(uint256 quantity) external view returns (uint256) {
         if (quantity == 0) revert InvalidAmount();
         uint256 pricePerToken = this.getUsdPricePerToken();
-        return AssetManagerMath.calculateAssetValue(pricePerToken, quantity, priceFeedDecimals);
+        return AssetManagerMath.calculateAssetValue(pricePerToken, quantity);
+    }
+
+    function buyAssetTokenWithERC20(uint256 amount, address tokenAddress) external {
+        if (amount == 0) revert InvalidAmount();
+        if (address(priceFeeds[tokenAddress]) == address(0)) revert FeedTokenNotFound();
+        if (availableSupply < amount) revert LimitExceeded();
+
+        uint256 pricePerToken = this.getLastPriceToken(tokenAddress);
+        if (pricePerToken == 0) revert InvalidPrice();
+        uint256 totalPrice = pricePerToken * amount;
+
+        IERC20(tokenAddress).safeTransferFrom(
+            msg.sender,
+            address(this),
+            totalPrice
+        );
+        
+        if (treasuryAddress != address(0) && treasuryAddress != address(this)) {
+            IERC20(tokenAddress).safeTransfer(treasuryAddress, totalPrice);
+        }
+
+        _assetToken.mint(msg.sender, amount);
+        availableSupply -= amount;
+
+        emit Bought(msg.sender, amount, totalPrice);
+    }
+
+    function buyAssetTokenWithETH(uint256 amount) external payable {
+        if (amount == 0) revert InvalidAmount();
+        if (availableSupply < amount) revert LimitExceeded();
+
+        uint256 pricePerToken = this.getLastPriceToken(address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE));
+        if (pricePerToken == 0) revert InvalidPrice();
+        uint256 totalPrice = pricePerToken * amount;
+
+        if (msg.value < totalPrice) revert InvalidAmount();
+
+        if (treasuryAddress != address(0) && treasuryAddress != address(this)) {
+            payable(treasuryAddress).transfer(totalPrice);
+        }
+
+        _assetToken.mint(msg.sender, amount);
+        availableSupply -= amount;
+
+        emit Bought(msg.sender, amount, totalPrice);
     }
 }

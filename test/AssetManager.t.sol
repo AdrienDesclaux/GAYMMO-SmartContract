@@ -22,6 +22,7 @@ contract AssetManagerTest is Test {
 
     address private owner = address(0x123);
     address private user = address(0x456);
+    address private treasury = address(0x789);
 
     function setUp() public {
         // Deploy implementations (templates)
@@ -50,6 +51,8 @@ contract AssetManagerTest is Test {
         assetManager.setPriceFeed(eth, address(mockEthUsdFeed));
         vm.stopPrank();
 
-        assertEq(assetManager.getLastPrice(eth), 5 * 10 ** 14);
+        assertEq(assetManager.getLastPriceToken(eth), 5 * 10 ** 14);
     }
+
+    
 }

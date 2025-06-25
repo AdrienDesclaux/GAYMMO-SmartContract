@@ -11,14 +11,10 @@ library AssetManagerMath {
         return months * rentPerMonth * 10 ** 18;
     }
 
-    function calculateAssetValue(
-        uint256 pricePerToken,
-        uint256 quantity,
-        uint8 priceFeedDecimals
-    ) internal pure returns (uint256) {
-        if (quantity == 0 || pricePerToken == 0) {
+    function calculateAssetValue(uint256 pricePerUnit, uint256 quantity) internal pure returns (uint256) {
+        if (quantity == 0) {
             return 0;
         }
-        return (pricePerToken * quantity) / (10 ** uint256(priceFeedDecimals));
-    }
+        return pricePerUnit * quantity;
+    } 
 }
