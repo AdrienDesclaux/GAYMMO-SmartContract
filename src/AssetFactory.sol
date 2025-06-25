@@ -48,7 +48,7 @@ contract AssetFactory {
 
         Asset(assetClone).initialize(name, symbol, _owner);
         AssetToken(assetTokenClone).initialize(name, symbol, 1000000 * 10 ** 18, _owner);
-        AssetManager(assetManagerClone).initialize(assetClone, assetTokenClone, 1 * 10 ** 18, _owner);
+        AssetManager(assetManagerClone).initialize(assetClone, assetTokenClone, 1, _owner);
 
         _assetDetails[assetClone] = Assets({
             assetAddress: assetClone,

@@ -40,7 +40,7 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         if (assetTokenAddress == address(0)) revert InvalidAssetTokenAddress();
         if (_usdPricePerToken == 0) revert InvalidPrice();
 
-        usdPricePerToken = _usdPricePerToken;
+        usdPricePerToken = _usdPricePerToken * 10 ** 18;
         _asset = Asset(assetAddress);
         _assetToken = AssetToken(assetTokenAddress);
         __Ownable_init(owner_);
