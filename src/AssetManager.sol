@@ -17,7 +17,7 @@ contract AssetManager is Initializable, OwnableUpgradeable {
     using AssetManagerMath for uint256;
     using SafeERC20 for IERC20;
 
-    struct LastInvestment {
+    struct LastsInvestment {
         uint256 amount;
         uint256 timestamp;
     }
@@ -30,7 +30,7 @@ contract AssetManager is Initializable, OwnableUpgradeable {
     uint256 private rentUsdPerMonth;
     uint256 private availableSupply;
     mapping(address => uint256) private _lastClaimed;
-    mapping(address => LastInvestment) private _lastInvestment;
+    mapping(address => LastsInvestment[]) private _lastInvestment;
 
 
     event AssetTokenUpdated(address indexed assetTokenAddress);
@@ -121,7 +121,7 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         return usdPricePerToken;
     }
 
-    function getLastInvestmentTimestamp(address investor) external view returns (LastInvestment memory) {
+    function getLastsInvestment(address investor) external view returns (LastsInvestment[] memory) {
         return _lastInvestment[investor];
     }
 
@@ -157,8 +157,10 @@ contract AssetManager is Initializable, OwnableUpgradeable {
 
         _assetToken.mint(msg.sender, amount);
         availableSupply -= amount;
-        _lastInvestment[msg.sender].amount = amount;
-        _lastInvestment[msg.sender].timestamp = block.timestamp;
+        _lastInvestment[msg.sender].push(LastsInvestment({
+            amount: amount,
+            timestamp: block.timestamp
+        }));
 
         emit Bought(msg.sender, amount, totalPrice);
     }
@@ -177,8 +179,10 @@ contract AssetManager is Initializable, OwnableUpgradeable {
 
         _assetToken.mint(msg.sender, amount);
         availableSupply -= amount;
-        _lastInvestment[msg.sender].amount = amount;
-        _lastInvestment[msg.sender].timestamp = block.timestamp;
+        _lastInvestment[msg.sender].push(LastsInvestment({
+            amount: amount,
+            timestamp: block.timestamp
+        }));
 
         emit Bought(msg.sender, amount, totalPrice);
     }
