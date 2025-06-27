@@ -16,6 +16,11 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract AssetManager is Initializable, OwnableUpgradeable {
     using AssetManagerMath for uint256;
     using SafeERC20 for IERC20;
+
+    struct LastInvestment {
+        uint256 amount;
+        uint256 timestamp;
+    }
     mapping(address => AggregatorV3Interface) public priceFeeds;
     address public treasuryAddress;
     Asset private _asset;
@@ -24,6 +29,8 @@ contract AssetManager is Initializable, OwnableUpgradeable {
     bool private _initialized;
     uint256 private rentUsdPerMonth;
     uint256 private availableSupply;
+    mapping(address => uint256) private _lastClaimed;
+    mapping(address => LastInvestment) private _lastInvestment;
 
 
     event AssetTokenUpdated(address indexed assetTokenAddress);
@@ -114,9 +121,13 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         return usdPricePerToken;
     }
 
-    function calculateRentPrice(uint256 months) external view returns (uint256) {
+    function getLastInvestmentTimestamp(address investor) external view returns (LastInvestment memory) {
+        return _lastInvestment[investor];
+    }
+
+    function calculateRentPrice() external view returns (uint256) {
         uint256 rent = this.getRentUsdPerMonth(); // Ensure the rentUsdPerMonth is set before calculation
-        return AssetManagerMath.calculateRentPrice(rent, months);
+        return AssetManagerMath.calculateSecondsRentPrice(rent);
     }
 
     function calculateAssetValue(uint256 quantity) external view returns (uint256) {
@@ -146,6 +157,8 @@ contract AssetManager is Initializable, OwnableUpgradeable {
 
         _assetToken.mint(msg.sender, amount);
         availableSupply -= amount;
+        _lastInvestment[msg.sender].amount = amount;
+        _lastInvestment[msg.sender].timestamp = block.timestamp;
 
         emit Bought(msg.sender, amount, totalPrice);
     }
@@ -164,6 +177,8 @@ contract AssetManager is Initializable, OwnableUpgradeable {
 
         _assetToken.mint(msg.sender, amount);
         availableSupply -= amount;
+        _lastInvestment[msg.sender].amount = amount;
+        _lastInvestment[msg.sender].timestamp = block.timestamp;
 
         emit Bought(msg.sender, amount, totalPrice);
     }

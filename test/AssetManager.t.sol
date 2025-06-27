@@ -77,4 +77,19 @@ contract AssetManagerTest is Test {
 
         assertEq(assetToken.balanceOf(user), amountToBuy);
     }
+
+    function testCalculateRentPrice() public {
+        address assetManagerAddress = assetFactory.getAssetDetails(createdAssetAddress1).assetManagerAddress;
+        AssetManager assetManager = AssetManager(assetManagerAddress);
+
+        vm.startPrank(owner);
+        assetManager.setRentUsdPerMonth(100); // Set rent to $100 per month
+        vm.stopPrank();
+
+        uint256 rentUsdPerMonth = assetManager.getRentUsdPerMonth();
+        uint256 rentPrice = assetManager.calculateRentPrice();
+        uint256 expectedRentPrice = (rentUsdPerMonth * 12 * 10 ** 18 ) / (365 days + 6 hours);
+
+        assertEq(rentPrice, expectedRentPrice);
+    }
 }
