@@ -20,7 +20,9 @@ contract AssetManager is Initializable, OwnableUpgradeable {
     struct LastsInvestment {
         uint256 amount;
         uint256 timestamp;
+        uint256 balance;
     }
+
     mapping(address => AggregatorV3Interface) public priceFeeds;
     address public treasuryAddress;
     Asset private _asset;
@@ -37,6 +39,7 @@ contract AssetManager is Initializable, OwnableUpgradeable {
     event AssetOwnershipTransferred(address indexed newOwner);
     event Bought(address indexed buyer, uint256 amount, uint256 totalPrice);
     event PriceFeedSet(address indexed tokenAddress, address indexed priceFeedAddress);
+    event log_uint(uint256 value);
 
     error InvalidAssetAddress();
     error InvalidAssetTokenAddress();
@@ -69,6 +72,8 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         emit AssetTokenUpdated(assetTokenAddress);
     }
 
+    //CHAINLINK PRICE FEEDS
+
     /**
      * @notice Get the last price on a specify crypto for payement since a known price in FIAT, set before.
      * @param tokenAddress The cryptocurrency token address who want to have on payment.
@@ -94,6 +99,8 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         priceFeeds[tokenAddress] = AggregatorV3Interface(priceFeedAddress);
         emit PriceFeedSet(tokenAddress, priceFeedAddress);
     }
+
+    // GETTERS AND SETTERS
 
     function setRentUsdPerMonth(uint256 _rentUsdPerMonth) external onlyOwner {
         if (_rentUsdPerMonth == 0) revert InvalidPrice();
@@ -125,6 +132,19 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         return _lastInvestment[investor];
     }
 
+    function getLastClaimed(address investor) external view returns (uint256) {
+        return _lastClaimed[investor];
+    }
+
+    function getTreasuryAddress() external view returns (address) {
+        return treasuryAddress;
+    }
+
+    function setTreasuryAddress(address _treasuryAddress) external onlyOwner {
+        if (_treasuryAddress == address(0)) revert InvalidAssetTokenAddress();
+        treasuryAddress = _treasuryAddress;
+    }
+
     function calculateRentPrice() external view returns (uint256) {
         uint256 rent = this.getRentUsdPerMonth(); // Ensure the rentUsdPerMonth is set before calculation
         return AssetManagerMath.calculateSecondsRentPrice(rent);
@@ -141,6 +161,7 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         if (address(priceFeeds[tokenAddress]) == address(0)) revert FeedTokenNotFound();
         if (availableSupply < amount) revert LimitExceeded();
 
+        uint256 lastBalance = IERC20(address(_assetToken)).balanceOf(msg.sender);
         uint256 pricePerToken = this.getLastPriceToken(tokenAddress);
         if (pricePerToken == 0) revert InvalidPrice();
         uint256 totalPrice = pricePerToken * amount;
@@ -159,7 +180,8 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         availableSupply -= amount;
         _lastInvestment[msg.sender].push(LastsInvestment({
             amount: amount,
-            timestamp: block.timestamp
+            timestamp: block.timestamp,
+            balance: lastBalance + amount
         }));
 
         emit Bought(msg.sender, amount, totalPrice);
@@ -169,6 +191,7 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         if (amount == 0) revert InvalidAmount();
         if (availableSupply < amount) revert LimitExceeded();
 
+        uint256 lastBalance = IERC20(address(_assetToken)).balanceOf(msg.sender);
         uint256 pricePerToken = this.getLastPriceToken(address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE));
         if (pricePerToken == 0) revert InvalidPrice();
         uint256 totalPrice = pricePerToken * amount;
@@ -181,9 +204,35 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         availableSupply -= amount;
         _lastInvestment[msg.sender].push(LastsInvestment({
             amount: amount,
-            timestamp: block.timestamp
+            timestamp: block.timestamp,
+            balance: lastBalance + amount
         }));
 
         emit Bought(msg.sender, amount, totalPrice);
+    }
+
+    function claimRent() external {
+        uint256 lastClaimed = _lastClaimed[msg.sender];   
+        uint256 rentPrice = this.calculateRentPrice();
+        uint256 rewards = 0;
+
+        if(_lastInvestment[msg.sender].length > 0) {
+            for (uint256 i = 0; i < _lastInvestment[msg.sender].length; i++) {
+                uint256 start = _lastInvestment[msg.sender][i].timestamp > lastClaimed ? _lastInvestment[msg.sender][i].timestamp : lastClaimed;
+                uint256 end = (i + 1 < _lastInvestment[msg.sender].length) ? _lastInvestment[msg.sender][i + 1].timestamp : block.timestamp;
+
+                if (start < end) {
+                    uint256 differenceTime = end - start;
+                    rewards += AssetManagerMath.calculateTotalClaimRent(
+                        rentPrice,
+                        differenceTime
+                    ) * _lastInvestment[msg.sender][i].balance / this.getTotalSupply();
+                }
+            }
+        }
+        _lastClaimed[msg.sender] = block.timestamp;
+        if (rewards > 0) {
+            payable(msg.sender).transfer(rewards);
+        }
     }
 }

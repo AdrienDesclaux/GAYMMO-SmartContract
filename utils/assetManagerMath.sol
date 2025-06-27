@@ -17,6 +17,14 @@ library AssetManagerMath {
         return (annualRent) /  secondsInYear;
     }
 
+    function calculateTotalClaimRent(
+        uint256 rentPerMonth,
+        uint256 differenceTime
+    ) internal pure returns (uint256) {
+        uint256 secondsRent = calculateSecondsRentPrice(rentPerMonth);
+        return (differenceTime * secondsRent) / 10 ** 18;
+    }
+
     function calculateAssetValue(uint256 pricePerUnit, uint256 quantity) internal pure returns (uint256) {
         if (quantity == 0) {
             return 0;
