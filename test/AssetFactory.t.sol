@@ -36,7 +36,7 @@ contract AssetFactoryTest is Test {
         vm.startPrank(owner);
         address createdAssetAddress = assetFactory.createAsset(name, symbol, owner);
         vm.stopPrank();
-
+        
         // Cast de l'adresse clonée vers le type Asset
         Asset createdAsset = Asset(createdAssetAddress);
 
@@ -128,4 +128,13 @@ contract AssetFactoryTest is Test {
         assetFactory.getAssetDetails(address(0x789));
     }
     
+    function testGetAssetTokenAddressNotFound() public {
+        vm.expectRevert(abi.encodeWithSelector(AssetFactory.AssetNotFound.selector));
+        assetFactory.getAssetDetails(address(0x789));
+    }
+
+    function testGetAssetManagerAddressNotFound() public {
+        vm.expectRevert(abi.encodeWithSelector(AssetFactory.AssetNotFound.selector));
+        assetFactory.getAssetDetails(address(0x789));
+    }
 }

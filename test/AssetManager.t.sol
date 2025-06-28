@@ -233,4 +233,31 @@ contract AssetManagerTest is Test {
         assetManager.setPriceFeed(eth, address(0));
         vm.stopPrank();
     }
+
+    function testGetLastPriceTokenWithInvalidFeed() public {
+        address assetManagerAddress = assetFactory.getAssetDetails(createdAssetAddress1).assetManagerAddress;
+        AssetManager assetManager = AssetManager(assetManagerAddress);
+
+        vm.startPrank(owner);
+        vm.expectRevert(abi.encodeWithSelector(AssetManager.FeedTokenNotFound.selector));
+        assetManager.getLastPriceToken(eth);
+        vm.stopPrank();
+    }
+
+    function testGetLastPriceTokenWithInvalidPrice() public {
+        address assetManagerAddress = assetFactory.getAssetDetails(createdAssetAddress1).assetManagerAddress;
+        AssetManager assetManager = AssetManager(assetManagerAddress);
+
+        vm.startPrank(owner);
+        assetManager.setPriceFeed(eth, address(mockEthUsdFeed));
+        vm.stopPrank();
+
+        // Simulate a price feed with no data
+        MockV3Aggregator mockAggregator = new MockV3Aggregator(8, 0);
+        vm.startPrank(owner);
+        assetManager.setPriceFeed(eth, address(mockAggregator));
+        vm.expectRevert(abi.encodeWithSelector(AssetManager.InvalidPrice.selector));
+        assetManager.getLastPriceToken(eth);
+        vm.stopPrank();
+    }
 }

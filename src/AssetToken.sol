@@ -13,14 +13,12 @@ contract AssetToken is OwnableUpgradeable, ERC20Upgradeable, AccessControlUpgrad
 
 
     error AlreadyInitialized();
-    error InvalidNameOrSymbol();
 
     function initialize(string memory name_, string memory symbol_, uint256 _limitSupply, address owner_)
         external
         initializer
     {
         __AccessControl_init();
-        if (bytes(name_).length == 0 || bytes(symbol_).length == 0) revert InvalidNameOrSymbol();
         __ERC20_init(name_, symbol_);
         __Ownable_init(owner_);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
