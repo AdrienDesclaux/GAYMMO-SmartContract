@@ -26,8 +26,7 @@ contract AssetToken is OwnableUpgradeable, ERC20Upgradeable, AccessControlUpgrad
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, owner_);
         _grantRole(MINTER_ROLE, owner_);
-        limitSupply = _limitSupply * 10 ** 18;
-        _mint(owner_, limitSupply);
+        limitSupply = _limitSupply;
     }
 
     function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {

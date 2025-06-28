@@ -12,6 +12,7 @@ import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.so
 import { AssetManagerMath } from "../utils/assetManagerMath.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "forge-std/console.sol";
 
 contract AssetManager is Initializable, OwnableUpgradeable {
     using AssetManagerMath for uint256;
@@ -50,6 +51,8 @@ contract AssetManager is Initializable, OwnableUpgradeable {
     error InvalidPrice();
     error LimitExceeded();
     error AlreadyInitialized();
+    error NothingToClaim();
+    error IvalidTimestamp();
 
     function initialize(address assetAddress, address assetTokenAddress, uint256 _usdPricePerToken, address owner_)
         external
@@ -62,7 +65,7 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         usdPricePerToken = _usdPricePerToken * 10 ** 18;
         _asset = Asset(assetAddress);
         _assetToken = AssetToken(assetTokenAddress);
-        availableSupply = _assetToken.totalSupply(); // Assuming limitSupply is set in AssetToken
+        availableSupply = _assetToken.limitSupply(); // Assuming limitSupply is set in AssetToken
         __Ownable_init(owner_);
     }
 
@@ -70,6 +73,10 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         if (assetTokenAddress == address(0)) revert InvalidAssetTokenAddress();
         _assetToken = AssetToken(assetTokenAddress);
         emit AssetTokenUpdated(assetTokenAddress);
+    }
+
+    function isETH(address token) internal pure returns (bool) {
+    return token == address(0) || token == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     }
 
     //CHAINLINK PRICE FEEDS
@@ -104,15 +111,15 @@ contract AssetManager is Initializable, OwnableUpgradeable {
 
     function setRentUsdPerMonth(uint256 _rentUsdPerMonth) external onlyOwner {
         if (_rentUsdPerMonth == 0) revert InvalidPrice();
-        rentUsdPerMonth = _rentUsdPerMonth * 10 ** 18;
+        rentUsdPerMonth = _rentUsdPerMonth;
     }
 
     function getRentUsdPerMonth() external view returns (uint256) {
         return rentUsdPerMonth;
     }
 
-    function getTotalSupply() external view returns (uint256) {
-        return _assetToken.totalSupply();
+    function getLimitSupply() external view returns (uint256) {
+        return _assetToken.limitSupply();
     }
 
     function getAvailableSupply() external view returns (uint256) {
@@ -146,7 +153,7 @@ contract AssetManager is Initializable, OwnableUpgradeable {
     }
 
     function calculateRentPrice() external view returns (uint256) {
-        uint256 rent = this.getRentUsdPerMonth(); // Ensure the rentUsdPerMonth is set before calculation
+        uint256 rent = this.getRentUsdPerMonth(); 
         return AssetManagerMath.calculateSecondsRentPrice(rent);
     }
 
@@ -202,6 +209,7 @@ contract AssetManager is Initializable, OwnableUpgradeable {
 
         _assetToken.mint(msg.sender, amount);
         availableSupply -= amount;
+        _lastClaimed[msg.sender] = block.timestamp;
         _lastInvestment[msg.sender].push(LastsInvestment({
             amount: amount,
             timestamp: block.timestamp,
@@ -211,10 +219,35 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         emit Bought(msg.sender, amount, totalPrice);
     }
 
-    function claimRent() external {
-        uint256 lastClaimed = _lastClaimed[msg.sender];   
+
+    /**
+     * @notice Claim the rent for the user.
+     * @param token The address of token for payment (ETH or Stablecoins).
+     */
+    function claimRent(address token) external {
+        uint256 lastClaimed = _lastClaimed[msg.sender]; 
+        if (lastClaimed == 0 || lastClaimed >= block.timestamp) {
+            revert IvalidTimestamp();
+        }  
         uint256 rentPrice = this.calculateRentPrice();
         uint256 rewards = 0;
+        uint256 tokenPrice = this.getLastPriceToken(token);
+
+        if (tokenPrice == 0) {
+            revert InvalidPrice();
+        }
+        if (rentPrice == 0) {
+            revert InvalidPrice();
+        }
+        if (availableSupply == 0) {
+            revert LimitExceeded();
+        }
+        if( _lastInvestment[msg.sender].length == 0) {
+            revert NothingToClaim();
+        }
+        if( _lastInvestment[msg.sender].length > 0 && _lastInvestment[msg.sender][0].balance == 0) {
+            revert InvalidAmount();
+        }
 
         if(_lastInvestment[msg.sender].length > 0) {
             for (uint256 i = 0; i < _lastInvestment[msg.sender].length; i++) {
@@ -226,13 +259,23 @@ contract AssetManager is Initializable, OwnableUpgradeable {
                     rewards += AssetManagerMath.calculateTotalClaimRent(
                         rentPrice,
                         differenceTime
-                    ) * _lastInvestment[msg.sender][i].balance / this.getTotalSupply();
+                    ) * _lastInvestment[msg.sender][i].balance * 10 ** 18 / this.getLimitSupply();
                 }
             }
         }
+        
+        rewards = (rewards * 10 ** 18) / tokenPrice;
+        if (rewards == 0) {
+            revert NothingToClaim();
+        }
         _lastClaimed[msg.sender] = block.timestamp;
         if (rewards > 0) {
-            payable(msg.sender).transfer(rewards);
+            if (isETH(token)) {
+                payable(msg.sender).transfer(rewards);
+            }
+            else {
+                IERC20(token).safeTransfer(this.treasuryAddress(), rewards);
+            }
         }
     }
 }

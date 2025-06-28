@@ -5,7 +5,7 @@ library AssetManagerMath {
     // Function to calculate the value of an asset based on its price and quantity
     // Adjusts for price feed decimals
     function calculateAnnualRentPrice(uint256 rentPerMonth) internal pure returns (uint256) {
-        return   12 * rentPerMonth * 10 ** 18;
+        return   12 * rentPerMonth;
     }
 
     function calculateSecondsRentPrice(uint256 rentPerMonth) internal pure returns (uint256) {
@@ -14,7 +14,7 @@ library AssetManagerMath {
         }
         uint256 annualRent = calculateAnnualRentPrice(rentPerMonth);
         uint256 secondsInYear = calculateSecondsInYear();
-        return (annualRent) /  secondsInYear;
+        return (annualRent) * 10 ** 18 /  secondsInYear;
     }
 
     function calculateTotalClaimRent(

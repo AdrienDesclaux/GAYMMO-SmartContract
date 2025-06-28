@@ -93,43 +93,43 @@ contract AssetManagerTest is Test {
         assertEq(rentPrice, expectedRentPrice);
     }
 
-    function testClaimRent() public {
+    function testClaimRentEth() public {
         // Déploiement et récupération
         address assetManagerAddress = assetFactory.getAssetDetails(createdAssetAddress1).assetManagerAddress;
         AssetManager assetManager = AssetManager(assetManagerAddress);
 
         vm.startPrank(owner);
-        assetManager.setRentUsdPerMonth(1200); // 100 USD par mois
-        assetManager.setPriceFeed(eth, address(mockEthUsdFeed)); // ETH/USD = 2000
+        assetManager.setRentUsdPerMonth(1000);
+        assetManager.setPriceFeed(eth, address(mockEthUsdFeed));
         vm.stopPrank();
         vm.deal(user, 1 ether);
 
         // Achat de 10 tokens à 100 USD chacun (donc 0.05 ETH/token à 2000$/ETH)
         uint256 investmentAmount = 10;
-        uint256 pricePerToken = assetManager.getLastPriceToken(eth); // devrait être environ 0.05 ETH
+        uint256 pricePerToken = AssetManager(assetManagerAddress).getLastPriceToken(eth); 
         uint256 totalCost = pricePerToken * investmentAmount;
 
         vm.startPrank(user);
         assetManager.buyAssetTokenWithETH{value: totalCost}(investmentAmount);
         vm.stopPrank();
 
-        // Avancer dans le temps de 30 jours (2592000 secondes)
-        uint256 timeToAdvance = 30 days;
-        vm.warp(block.timestamp + timeToAdvance);
-
         // Balance avant le claim
         uint256 balanceBefore = user.balance;
+
+
+        uint256 timeToAdvance = 30 days;
+        vm.warp(block.timestamp + timeToAdvance);
 
         vm.deal(address(assetManager), 10000 ether);
         // Claim des loyers
         vm.startPrank(user);
-        assetManager.claimRent();
+        assetManager.claimRent(eth);
         vm.stopPrank();
 
         uint256 balanceAfter = user.balance;
 
         // Vérification que des loyers ont été envoyés (ETH reçu > 0)
-        //assertGt(balanceAfter, balanceBefore);
+        assertGt(balanceAfter, balanceBefore);
 
         // Vérification que le timestamp de dernier claim est bien mis à jour
         uint256 lastClaim = assetManager.getLastClaimed(user);
