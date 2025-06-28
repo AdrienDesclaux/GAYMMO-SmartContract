@@ -135,4 +135,102 @@ contract AssetManagerTest is Test {
         uint256 lastClaim = assetManager.getLastClaimed(user);
         assertEq(lastClaim, block.timestamp);
     }
+
+    function testClaimRentUSDT() public {
+        // Déploiement et récupération
+        address assetManagerAddress = assetFactory.getAssetDetails(createdAssetAddress1).assetManagerAddress;
+        AssetManager assetManager = AssetManager(assetManagerAddress);
+
+        vm.startPrank(owner);
+        assetManager.setRentUsdPerMonth(1000);
+        assetManager.setPriceFeed(eth, address(mockEthUsdFeed));
+        vm.stopPrank();
+        vm.deal(user, 10000 ether);
+
+        // Achat de 10 tokens à 100 USD chacun (donc 0.05 ETH/token à 2000$/ETH)
+        uint256 investmentAmount = 10;
+        uint256 pricePerToken = AssetManager(assetManagerAddress).getLastPriceToken(eth); 
+        uint256 totalCost = pricePerToken * investmentAmount;
+
+        vm.startPrank(user);
+        assetManager.buyAssetTokenWithETH{value: totalCost}(investmentAmount);
+        vm.stopPrank();
+
+        // Balance avant le claim
+        uint256 balanceBefore = user.balance;
+
+        uint256 timeToAdvance = 30 days;
+        vm.warp(block.timestamp + timeToAdvance);
+
+        // Claim des loyers
+        vm.startPrank(user);
+        assetManager.claimRent(eth);
+        vm.stopPrank();
+
+        uint256 balanceAfter = user.balance;
+
+        // Vérification que des loyers ont été envoyés (ETH reçu > 0)
+        assertGt(balanceAfter, balanceBefore);
+
+        // Vérification que le timestamp de dernier claim est bien mis à jour
+        uint256 lastClaim = assetManager.getLastClaimed(user);
+        assertEq(lastClaim, block.timestamp);
+    }
+
+    function testSetAvailableSupply() public {
+        address assetManagerAddress = assetFactory.getAssetDetails(createdAssetAddress1).assetManagerAddress;
+        AssetManager assetManager = AssetManager(assetManagerAddress);
+
+        vm.startPrank(owner);
+        assetManager.setAvailableSupply(10000 * 10 ** 18);
+        vm.stopPrank();
+
+        assertEq(assetManager.getAvailableSupply(), 10000 * 10 ** 18);
+    }
+
+    function testSetRentUsdPerMonth() public {
+        address assetManagerAddress = assetFactory.getAssetDetails(createdAssetAddress1).assetManagerAddress;
+        AssetManager assetManager = AssetManager(assetManagerAddress);
+
+        vm.startPrank(owner);
+        assetManager.setRentUsdPerMonth(500);
+        vm.stopPrank();
+
+        assertEq(assetManager.getRentUsdPerMonth(), 500);
+    }
+    function testClaimRentEthWithinvalidTimeStamp() public {
+        // Déploiement et récupération
+        address assetManagerAddress = assetFactory.getAssetDetails(createdAssetAddress1).assetManagerAddress;
+        AssetManager assetManager = AssetManager(assetManagerAddress);
+
+        vm.startPrank(owner);
+        assetManager.setRentUsdPerMonth(1000);
+        assetManager.setPriceFeed(eth, address(mockEthUsdFeed));
+        vm.stopPrank();
+        vm.deal(user, 1 ether);
+
+        uint256 investmentAmount = 10;
+        uint256 pricePerToken = AssetManager(assetManagerAddress).getLastPriceToken(eth); 
+        uint256 totalCost = pricePerToken * investmentAmount;
+
+        vm.startPrank(user);
+        assetManager.buyAssetTokenWithETH{value: totalCost}(investmentAmount);
+        vm.stopPrank();
+
+        vm.startPrank(user);
+        vm.expectRevert(abi.encodeWithSelector(AssetManager.InvalidTimestamp.selector));
+        assetManager.claimRent(eth);
+        vm.stopPrank();
+
+    }
+
+    function testSetPriceFeedWithInvalidAddress() public {
+        address assetManagerAddress = assetFactory.getAssetDetails(createdAssetAddress1).assetManagerAddress;
+        AssetManager assetManager = AssetManager(assetManagerAddress);
+
+        vm.startPrank(owner);
+        vm.expectRevert(abi.encodeWithSelector(AssetManager.InvalidFeedTokenAddress.selector));
+        assetManager.setPriceFeed(eth, address(0));
+        vm.stopPrank();
+    }
 }

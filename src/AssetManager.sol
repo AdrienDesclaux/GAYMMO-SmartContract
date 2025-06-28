@@ -52,7 +52,7 @@ contract AssetManager is Initializable, OwnableUpgradeable {
     error LimitExceeded();
     error AlreadyInitialized();
     error NothingToClaim();
-    error IvalidTimestamp();
+    error InvalidTimestamp();
 
     function initialize(address assetAddress, address assetTokenAddress, uint256 _usdPricePerToken, address owner_)
         external
@@ -227,7 +227,7 @@ contract AssetManager is Initializable, OwnableUpgradeable {
     function claimRent(address token) external {
         uint256 lastClaimed = _lastClaimed[msg.sender]; 
         if (lastClaimed == 0 || lastClaimed >= block.timestamp) {
-            revert IvalidTimestamp();
+            revert InvalidTimestamp();
         }  
         uint256 rentPrice = this.calculateRentPrice();
         uint256 rewards = 0;

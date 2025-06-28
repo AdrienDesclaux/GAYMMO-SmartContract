@@ -11,10 +11,8 @@ contract Asset is ERC721URIStorageUpgradeable, OwnableUpgradeable {
 
     error LimitReached();
     error AlreadyInitialized();
-    error InvalidNameOrSymbol();
 
     function initialize(string memory name_, string memory symbol_, address owner_) external initializer {
-        if (bytes(name_).length == 0 || bytes(symbol_).length == 0) revert InvalidNameOrSymbol();
         __ERC721_init(name_, symbol_);
         __Ownable_init(owner_);
         tokenCounter = 0;
