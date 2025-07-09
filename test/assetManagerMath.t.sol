@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import { Test, console } from "forge-std/Test.sol";
-import { AssetManagerMath } from "../utils/AssetManagerMath.sol";
+import { AssetManagerMath } from "../src/utils/AssetManagerMath.sol";
 
 contract AssetManagerMathTest is Test {
     using AssetManagerMath for uint256;
