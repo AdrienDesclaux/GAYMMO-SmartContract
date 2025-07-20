@@ -9,9 +9,6 @@ library AssetManagerMath {
     }
 
     function calculateSecondsRentPrice(uint256 rentPerMonth) internal pure returns (uint256) {
-        if (rentPerMonth == 0) {
-            return 0;
-        }
         uint256 annualRent = calculateAnnualRentPrice(rentPerMonth);
         uint256 secondsInYear = calculateSecondsInYear();
         return (annualRent) * 10 ** 18 /  secondsInYear;

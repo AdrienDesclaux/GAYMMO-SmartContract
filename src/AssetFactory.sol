@@ -83,14 +83,4 @@ contract AssetFactory {
     function getAssetCount() external view returns (uint256) {
         return _assets.length;
     }
-
-    function getAssetTokenAddress(address assetAddress) external view returns (address) {
-        if (!_isAssets[assetAddress]) revert AssetNotFound();
-        return _assetDetails[assetAddress].assetTokenAddress;
-    }
-
-    function getAssetManagerAddress(address assetAddress) external view returns (address) {
-        if (!_isAssets[assetAddress]) revert AssetNotFound();
-        return _assetDetails[assetAddress].assetManagerAddress;
-    }
 }

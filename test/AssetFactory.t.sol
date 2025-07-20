@@ -127,14 +127,4 @@ contract AssetFactoryTest is Test {
         vm.expectRevert(abi.encodeWithSelector(AssetFactory.AssetNotFound.selector));
         assetFactory.getAssetDetails(address(0x789));
     }
-    
-    function testGetAssetTokenAddressNotFound() public {
-        vm.expectRevert(abi.encodeWithSelector(AssetFactory.AssetNotFound.selector));
-        assetFactory.getAssetDetails(address(0x789));
-    }
-
-    function testGetAssetManagerAddressNotFound() public {
-        vm.expectRevert(abi.encodeWithSelector(AssetFactory.AssetNotFound.selector));
-        assetFactory.getAssetDetails(address(0x789));
-    }
 }
