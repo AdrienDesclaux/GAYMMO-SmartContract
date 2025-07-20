@@ -53,6 +53,8 @@ contract AssetManager is Initializable, OwnableUpgradeable {
     error AlreadyInitialized();
     error NothingToClaim();
     error InvalidTimestamp();
+    error InvalidTreasuryAddress();
+    error TransfertFailed();
 
     function initialize(address assetAddress, address assetTokenAddress, uint256 _usdPricePerToken, address owner_)
         external
@@ -67,12 +69,6 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         _assetToken = AssetToken(assetTokenAddress);
         availableSupply = _assetToken.limitSupply(); // Assuming limitSupply is set in AssetToken
         __Ownable_init(owner_);
-    }
-
-    function updateAssetToken(address assetTokenAddress) external onlyOwner {
-        if (assetTokenAddress == address(0)) revert InvalidAssetTokenAddress();
-        _assetToken = AssetToken(assetTokenAddress);
-        emit AssetTokenUpdated(assetTokenAddress);
     }
 
     function isETH(address token) internal pure returns (bool) {
@@ -114,6 +110,11 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         rentUsdPerMonth = _rentUsdPerMonth;
     }
 
+    function setUsdPricePerToken(uint256 _usdPricePerToken) external onlyOwner {
+        if (_usdPricePerToken == 0) revert InvalidPrice();
+        usdPricePerToken = _usdPricePerToken * 10 ** 18;
+    }
+
     function getRentUsdPerMonth() external view returns (uint256) {
         return rentUsdPerMonth;
     }
@@ -127,7 +128,6 @@ contract AssetManager is Initializable, OwnableUpgradeable {
     }
 
     function setAvailableSupply(uint256 _availableSupply) external onlyOwner {
-        if (_availableSupply == 0) revert InvalidAmount();
         availableSupply = _availableSupply;
     }
 
@@ -148,12 +148,13 @@ contract AssetManager is Initializable, OwnableUpgradeable {
     }
 
     function setTreasuryAddress(address _treasuryAddress) external onlyOwner {
-        if (_treasuryAddress == address(0)) revert InvalidAssetTokenAddress();
+        if (_treasuryAddress == address(0)) revert InvalidTreasuryAddress();
         treasuryAddress = _treasuryAddress;
     }
 
     function calculateRentPrice() external view returns (uint256) {
-        uint256 rent = this.getRentUsdPerMonth(); 
+        uint256 rent = this.getRentUsdPerMonth();
+        if (rent <= 0) revert InvalidPrice();
         return AssetManagerMath.calculateSecondsRentPrice(rent);
     }
 
@@ -163,7 +164,7 @@ contract AssetManager is Initializable, OwnableUpgradeable {
         return AssetManagerMath.calculateAssetValue(pricePerToken, quantity);
     }
 
-    function buyAssetTokenWithERC20(uint256 amount, address tokenAddress) external {
+    /*function buyAssetTokenWithERC20(uint256 amount, address tokenAddress) external {
         if (amount == 0) revert InvalidAmount();
         if (address(priceFeeds[tokenAddress]) == address(0)) revert FeedTokenNotFound();
         if (availableSupply < amount) revert LimitExceeded();
@@ -193,6 +194,7 @@ contract AssetManager is Initializable, OwnableUpgradeable {
 
         emit Bought(msg.sender, amount, totalPrice);
     }
+    */
 
     function buyAssetTokenWithETH(uint256 amount) external payable {
         if (amount == 0) revert InvalidAmount();
@@ -200,11 +202,13 @@ contract AssetManager is Initializable, OwnableUpgradeable {
 
         uint256 lastBalance = IERC20(address(_assetToken)).balanceOf(msg.sender);
         uint256 pricePerToken = this.getLastPriceToken(address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE));
-        if (pricePerToken == 0) revert InvalidPrice();
         uint256 totalPrice = pricePerToken * amount;
 
         if (treasuryAddress != address(0) && treasuryAddress != address(this)) {
-            payable(treasuryAddress).transfer(totalPrice);
+            (bool success, ) = payable(treasuryAddress).call{value: totalPrice}("");
+            if (!success) {
+                revert TransfertFailed();
+            }
         }
 
         _assetToken.mint(msg.sender, amount);
@@ -218,7 +222,6 @@ contract AssetManager is Initializable, OwnableUpgradeable {
 
         emit Bought(msg.sender, amount, totalPrice);
     }
-
 
     /**
      * @notice Claim the rent for the user.
